@@ -18,20 +18,19 @@ export const FileUpload = () => {
   };
 
   const simulateDistribution = async (fileId: string, fileName: string, fileSize: number) => {
-    // Simulate file splitting into 4 parts
-    const numParts = 4;
-    const partSize = Math.ceil(fileSize / numParts);
-    
-    // Get available nodes
+    // Get available online nodes
     const { data: nodes } = await supabase
       .from('storage_nodes')
       .select('*')
-      .eq('status', 'online')
-      .limit(numParts);
+      .eq('status', 'online');
 
-    if (!nodes || nodes.length < numParts) {
-      throw new Error('Not enough online nodes');
+    if (!nodes || nodes.length === 0) {
+      throw new Error('No online nodes available');
     }
+
+    // Use available nodes (minimum 2, maximum from available)
+    const numParts = Math.min(4, nodes.length);
+    const partSize = Math.ceil(fileSize / numParts);
 
     // Create file parts metadata
     for (let i = 0; i < numParts; i++) {
