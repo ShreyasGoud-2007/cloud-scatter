@@ -57,10 +57,27 @@ export const FileUpload = () => {
   const handleUpload = async () => {
     if (!selectedFile) return;
 
+    // Validate file size (max 100MB)
+    const maxSize = 100 * 1024 * 1024;
+    if (selectedFile.size > maxSize) {
+      toast.error("File size must be less than 100MB");
+      return;
+    }
+
+    // Validate file name
+    const sanitizedName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    if (sanitizedName !== selectedFile.name) {
+      toast.error("File name contains invalid characters");
+      return;
+    }
+
     setUploading(true);
     setProgress(0);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       // Create file metadata
       const { data: fileData, error: fileError } = await supabase
         .from('files')
@@ -68,7 +85,8 @@ export const FileUpload = () => {
           file_name: selectedFile.name,
           file_size_bytes: selectedFile.size,
           num_parts: 4,
-          status: 'uploading'
+          status: 'uploading',
+          user_id: user.id
         })
         .select()
         .single();

@@ -1,29 +1,54 @@
 import { NodeCluster } from "@/components/NodeCluster";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
-import { Database, Network } from "lucide-react";
+import { Database, Network, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user, loading, signOut } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Database className="w-8 h-8 text-primary" />
-              <div 
-                className="absolute -inset-1 bg-primary/20 rounded-full blur-md -z-10"
-                style={{ filter: 'blur(8px)' }}
-              />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Database className="w-8 h-8 text-primary" />
+                <div 
+                  className="absolute -inset-1 bg-primary/20 rounded-full blur-md -z-10"
+                  style={{ filter: 'blur(8px)' }}
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Cloud-Connected Combined Storage System
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Distributed file storage across multiple nodes
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Cloud-Connected Combined Storage System
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Distributed file storage across multiple nodes
-              </p>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">{user.email}</span>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
