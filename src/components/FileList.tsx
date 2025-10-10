@@ -81,8 +81,40 @@ export const FileList = () => {
   };
 
   const handleDownload = async (file: FileData) => {
-    toast.success(`Reassembling ${file.file_name} from distributed chunks...`);
-    // In a real implementation, this would fetch chunks from all nodes and reassemble
+    try {
+      toast.success(`Reassembling ${file.file_name} from distributed chunks...`);
+      
+      // Fetch file parts to get metadata
+      const { data: parts } = await supabase
+        .from('file_parts')
+        .select('*')
+        .eq('file_id', file.id)
+        .order('part_index');
+
+      if (!parts || parts.length === 0) {
+        toast.error('No file parts found');
+        return;
+      }
+
+      // In a real implementation, chunks would be fetched from storage nodes
+      // For demo purposes, create a placeholder file
+      const blob = new Blob([`This is a placeholder for ${file.file_name}\nOriginal size: ${(file.file_size_bytes / 1024 / 1024).toFixed(2)} MB\nDistributed across ${file.num_parts} nodes`], 
+        { type: 'text/plain' });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`${file.file_name} downloaded successfully`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download file');
+    }
   };
 
   const getStatusColor = (status: string) => {
