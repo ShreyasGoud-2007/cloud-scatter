@@ -17,7 +17,10 @@ export const FileUpload = () => {
     }
   };
 
-  const simulateDistribution = async (fileId: string, fileName: string, fileSize: number) => {
+  const simulateDistribution = async (fileId: string, fileName: string, fileSize: number, file: File) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
     // Get available online nodes
     const { data: nodes } = await supabase
       .from('storage_nodes')
@@ -32,15 +35,33 @@ export const FileUpload = () => {
     const numParts = Math.min(4, nodes.length);
     const partSize = Math.ceil(fileSize / numParts);
 
-    // Create file parts metadata
+    // Read file as ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Create file parts and upload chunks
     for (let i = 0; i < numParts; i++) {
+      const start = i * partSize;
+      const end = Math.min(start + partSize, fileSize);
+      const chunk = arrayBuffer.slice(start, end);
+      
+      // Upload chunk to storage
+      const chunkPath = `${user.id}/${fileId}/part${i + 1}`;
+      const { error: uploadError } = await supabase.storage
+        .from('file-chunks')
+        .upload(chunkPath, chunk, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
       const checksum = `sha256_${Math.random().toString(36).substring(7)}`;
       await supabase.from('file_parts').insert({
         file_id: fileId,
         part_index: i + 1,
         checksum,
         node_id: nodes[i].id,
-        size_bytes: i === numParts - 1 ? fileSize - (partSize * (numParts - 1)) : partSize
+        size_bytes: end - start
       });
       
       setProgress(((i + 1) / numParts) * 100);
@@ -93,8 +114,8 @@ export const FileUpload = () => {
 
       if (fileError) throw fileError;
 
-      // Simulate file distribution
-      await simulateDistribution(fileData.id, selectedFile.name, selectedFile.size);
+      // Upload and distribute file
+      await simulateDistribution(fileData.id, selectedFile.name, selectedFile.size, selectedFile);
 
       toast.success('File distributed across nodes successfully!');
       setSelectedFile(null);

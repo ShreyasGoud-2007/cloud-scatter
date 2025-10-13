@@ -84,6 +84,12 @@ export const FileList = () => {
     try {
       toast.success(`Reassembling ${file.file_name} from distributed chunks...`);
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Not authenticated');
+        return;
+      }
+
       // Fetch file parts to get metadata
       const { data: parts } = await supabase
         .from('file_parts')
@@ -96,10 +102,24 @@ export const FileList = () => {
         return;
       }
 
-      // In a real implementation, chunks would be fetched from storage nodes
-      // For demo purposes, create a placeholder file
-      const blob = new Blob([`This is a placeholder for ${file.file_name}\nOriginal size: ${(file.file_size_bytes / 1024 / 1024).toFixed(2)} MB\nDistributed across ${file.num_parts} nodes`], 
-        { type: 'text/plain' });
+      // Download all chunks from storage
+      const chunks: ArrayBuffer[] = [];
+      for (const part of parts) {
+        const chunkPath = `${user.id}/${file.id}/part${part.part_index}`;
+        const { data: chunkData, error } = await supabase.storage
+          .from('file-chunks')
+          .download(chunkPath);
+
+        if (error || !chunkData) {
+          toast.error(`Failed to download chunk ${part.part_index}`);
+          return;
+        }
+
+        chunks.push(await chunkData.arrayBuffer());
+      }
+
+      // Reassemble chunks into original file
+      const blob = new Blob(chunks);
       
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -117,14 +137,25 @@ export const FileList = () => {
     }
   };
 
-  const handleChunkDownload = async (fileName: string, partIndex: number, nodeName: string) => {
+  const handleChunkDownload = async (fileId: string, fileName: string, partIndex: number) => {
     try {
-      // In a real implementation, this would fetch the chunk from the storage node
-      // For demo purposes, create a placeholder chunk file
-      const blob = new Blob([`Chunk ${partIndex} of ${fileName}\nStored on: ${nodeName}\nThis is a placeholder for the actual chunk data.`], 
-        { type: 'text/plain' });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const chunkPath = `${user.id}/${fileId}/part${partIndex}`;
+      const { data: chunkData, error } = await supabase.storage
+        .from('file-chunks')
+        .download(chunkPath);
+
+      if (error || !chunkData) {
+        toast.error(`Failed to download chunk ${partIndex}`);
+        return;
+      }
       
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(chunkData);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${fileName}.part${partIndex}`;
@@ -228,7 +259,7 @@ export const FileList = () => {
                             size="icon"
                             variant="ghost"
                             className="h-5 w-5"
-                            onClick={() => handleChunkDownload(file.file_name, part.part_index, part.storage_nodes.node_name)}
+                            onClick={() => handleChunkDownload(file.id, file.file_name, part.part_index)}
                           >
                             <Download className="w-3 h-3" />
                           </Button>
