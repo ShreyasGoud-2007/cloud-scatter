@@ -117,6 +117,29 @@ export const FileList = () => {
     }
   };
 
+  const handleChunkDownload = async (fileName: string, partIndex: number, nodeName: string) => {
+    try {
+      // In a real implementation, this would fetch the chunk from the storage node
+      // For demo purposes, create a placeholder chunk file
+      const blob = new Blob([`Chunk ${partIndex} of ${fileName}\nStored on: ${nodeName}\nThis is a placeholder for the actual chunk data.`], 
+        { type: 'text/plain' });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.part${partIndex}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`Chunk ${partIndex} downloaded`);
+    } catch (error) {
+      console.error('Chunk download error:', error);
+      toast.error('Failed to download chunk');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'distributed':
@@ -197,9 +220,19 @@ export const FileList = () => {
                     {fileParts[file.id].map((part) => (
                       <div 
                         key={part.part_index} 
-                        className="text-xs p-2 bg-muted/50 rounded border border-primary/30"
+                        className="text-xs p-2 bg-muted/50 rounded border border-primary/30 flex flex-col gap-1"
                       >
-                        <p className="font-mono text-primary">Part {part.part_index}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="font-mono text-primary">Part {part.part_index}</p>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5"
+                            onClick={() => handleChunkDownload(file.file_name, part.part_index, part.storage_nodes.node_name)}
+                          >
+                            <Download className="w-3 h-3" />
+                          </Button>
+                        </div>
                         <p className="text-muted-foreground truncate">
                           {part.storage_nodes.node_name}
                         </p>
