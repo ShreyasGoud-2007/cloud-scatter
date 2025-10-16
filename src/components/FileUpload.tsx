@@ -85,11 +85,10 @@ export const FileUpload = () => {
       return;
     }
 
-    // Validate file name
+    // Sanitize file name for storage
     const sanitizedName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     if (sanitizedName !== selectedFile.name) {
-      toast.error("File name contains invalid characters");
-      return;
+      toast.info(`Filename sanitized: ${sanitizedName}`);
     }
 
     setUploading(true);
@@ -99,11 +98,14 @@ export const FileUpload = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Sanitize filename for storage
+      const sanitizedName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      
       // Create file metadata
       const { data: fileData, error: fileError } = await supabase
         .from('files')
         .insert({
-          file_name: selectedFile.name,
+          file_name: sanitizedName,
           file_size_bytes: selectedFile.size,
           num_parts: 4,
           status: 'uploading',
