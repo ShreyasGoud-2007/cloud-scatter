@@ -104,7 +104,7 @@ export const FileList = () => {
       }
 
       // Download all chunks from storage
-      const chunks: ArrayBuffer[] = [];
+      const chunks: Blob[] = [];
       for (const part of parts) {
         const chunkPath = `${user.id}/${file.id}/part${part.part_index}`;
         const { data: chunkData, error } = await supabase.storage
@@ -116,11 +116,43 @@ export const FileList = () => {
           return;
         }
 
-        chunks.push(await chunkData.arrayBuffer());
+        chunks.push(chunkData);
       }
 
-      // Reassemble chunks into original file
-      const blob = new Blob(chunks);
+      // Determine MIME type from file extension
+      const getContentType = (filename: string) => {
+        const ext = filename.split('.').pop()?.toLowerCase();
+        const mimeTypes: Record<string, string> = {
+          'pdf': 'application/pdf',
+          'doc': 'application/msword',
+          'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'xls': 'application/vnd.ms-excel',
+          'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'ppt': 'application/vnd.ms-powerpoint',
+          'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          'txt': 'text/plain',
+          'html': 'text/html',
+          'htm': 'text/html',
+          'css': 'text/css',
+          'js': 'text/javascript',
+          'json': 'application/json',
+          'png': 'image/png',
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'gif': 'image/gif',
+          'svg': 'image/svg+xml',
+          'zip': 'application/zip',
+          'rar': 'application/x-rar-compressed',
+          'mp3': 'audio/mpeg',
+          'mp4': 'video/mp4',
+          'avi': 'video/x-msvideo'
+        };
+        return mimeTypes[ext || ''] || 'application/octet-stream';
+      };
+
+      // Reassemble chunks into original file with correct MIME type
+      const contentType = getContentType(file.file_name);
+      const blob = new Blob(chunks, { type: contentType });
       
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
