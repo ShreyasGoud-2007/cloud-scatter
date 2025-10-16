@@ -19,6 +19,7 @@ interface FilePart {
   part_index: number;
   node_id: string;
   checksum: string;
+  size_bytes: number;
   storage_nodes: {
     node_name: string;
   };
@@ -266,6 +267,9 @@ export const FileList = () => {
                         </div>
                         <p className="text-muted-foreground truncate">
                           {part.storage_nodes.node_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {(part.size_bytes / 1024).toFixed(2)} KB
                         </p>
                       </div>
                     ))}
