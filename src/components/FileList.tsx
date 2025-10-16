@@ -185,10 +185,13 @@ export const FileList = () => {
 
       if (error || !chunkData) {
         toast.error(`Failed to download chunk ${partIndex}`);
+        console.error('Chunk download error:', error);
         return;
       }
       
-      const url = URL.createObjectURL(chunkData);
+      // Create blob with binary data type
+      const blob = new Blob([chunkData], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${fileName}.part${partIndex}`;
