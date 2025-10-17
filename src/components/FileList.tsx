@@ -107,15 +107,25 @@ export const FileList = () => {
       const chunks: Blob[] = [];
       for (const part of parts) {
         const chunkPath = `${user.id}/${file.id}/part${part.part_index}`;
+        console.log('Downloading chunk:', chunkPath);
+        
         const { data: chunkData, error } = await supabase.storage
           .from('file-chunks')
           .download(chunkPath);
 
-        if (error || !chunkData) {
-          toast.error(`Failed to download chunk ${part.part_index}`);
+        if (error) {
+          console.error('Download error:', error);
+          toast.error(`Failed to download chunk ${part.part_index}: ${error.message}`);
+          return;
+        }
+        
+        if (!chunkData) {
+          console.error('No chunk data returned');
+          toast.error(`Failed to download chunk ${part.part_index}: No data returned`);
           return;
         }
 
+        console.log('Chunk downloaded:', chunkData.size, 'bytes');
         chunks.push(chunkData);
       }
 
