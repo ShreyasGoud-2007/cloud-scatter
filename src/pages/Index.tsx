@@ -36,7 +36,7 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">
-                  Cloud-Connected Combined Storage System
+                  Distributive System for Storage
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Distributed file storage across multiple nodes
