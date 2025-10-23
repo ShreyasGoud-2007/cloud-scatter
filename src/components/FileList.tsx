@@ -204,13 +204,16 @@ export const FileList = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${fileName}.part${partIndex}`;
+      // Keep original extension to indicate source file type
+      const baseFileName = fileName.replace(/\.[^/.]+$/, '');
+      const extension = fileName.split('.').pop();
+      a.download = `${baseFileName}.chunk${partIndex}.${extension}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      toast.success(`Chunk ${partIndex} downloaded`);
+      toast.info(`Raw chunk ${partIndex} downloaded. This is a fragment - use main Download button for complete file.`);
     } catch (error) {
       console.error('Chunk download error:', error);
       toast.error('Failed to download chunk');
@@ -292,7 +295,12 @@ export const FileList = () => {
 
               {expandedFile === file.id && fileParts[file.id] && (
                 <div className="mt-3 pt-3 border-t border-border">
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">Chunk Distribution Map:</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-muted-foreground">Chunk Distribution Map:</p>
+                    <p className="text-xs text-muted-foreground italic">
+                      ⚠️ Chunks are raw fragments. Use "Download" button above for complete file.
+                    </p>
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {fileParts[file.id].map((part) => (
                       <div 
@@ -306,6 +314,7 @@ export const FileList = () => {
                             variant="ghost"
                             className="h-5 w-5"
                             onClick={() => handleChunkDownload(file.id, file.file_name, part.part_index)}
+                            title="Download raw chunk fragment (not readable on its own)"
                           >
                             <Download className="w-3 h-3" />
                           </Button>
